@@ -43,10 +43,13 @@ var cheerioHtmlFile = function(htmlfile) {
 };
 
 var cheerioURL = function(htmlurl) {
-  var pageData = {};
+  var jq = "";
   restler.get(htmlurl).on('complete', function(data){
-	pageData = data;});
-  return cheerio.load(pageData);
+  
+  console.log(data);
+  jq = cheerio.load(data);
+});
+return jq;
 };
 
 var loadChecks = function(checksfile) {
@@ -65,14 +68,17 @@ var checkHtmlFile = function(htmlfile, checksfile) {
 };
 
 var checkURL = function(htmlurl, checksfile) {
-  $ = cheerioURL(htmlurl);
+  restler.get(htmlurl).on('complete', function(data){
+  $ = cheerio.load(data);
   var checks = loadChecks(checksfile).sort();
   var out = {};
   for(var ii in checks) {
     var present = $(checks[ii]).length > 0;
     out[checks[ii]] = present;
   }
-  return out;
+    var outJson = JSON.stringify(out, null, 4);
+    console.log(outJson);
+  });
 };
 
 var clone = function(fn) {
@@ -82,16 +88,17 @@ var clone = function(fn) {
 };
 
 if(require.main == module) {
-  program.option('-c, --checks <check_file>', 'Path to checks.json', clone(assertFileExists), CHECKSFILE_DEFAULT).option('-f, --file <html_file>', 'Path to index.html', clone(assertFileExists), HTMLFILE_DEFAULT).option('-u, --url <html_url>', 'URL to page', clone(assertFileExists), HTMLURL_DEFAULT).parse(process.argv);
+  program.option('-c, --checks <check_file>', 'Path to checks.json', clone(assertFileExists), CHECKSFILE_DEFAULT).option('-f, --file <html_file>', 'Path to index.html', clone(assertFileExists), HTMLFILE_DEFAULT).option('-u, --url <html_url>', 'URL to page').parse(process.argv);
   
   var checkJson = {};
   if(program.url){
-    checkJson = checkURL(program.url, program.checks);
+    checkURL(program.url, program.checks);
   }else{
     checkJson = checkHtmlFile(program.file, program.checks);
+    var outJson = JSON.stringify(checkJson, null, 4);
+    console.log(outJson);
+
   }
-  var outJson = JSON.stringify(checkJson, null, 4);
-  console.log(outJson);
 } else {
   exports.checkHtmlFile = checkHtmlFile;
 }
